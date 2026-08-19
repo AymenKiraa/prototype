@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requirePlatformAdminSession } from "@/lib/auth/guards";
 import { platformPrisma } from "@/lib/db/platform-client";
 
@@ -10,7 +11,15 @@ export default async function PlatformAdminDashboard() {
 
   return (
     <div className="mx-auto max-w-3xl py-16">
-      <h1 className="text-2xl font-semibold">Super Admin — {session.user.name}</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Super Admin — {session.user.name}</h1>
+        <Link
+          href="/platform-admin/tenants/new"
+          className="rounded bg-black px-4 py-2 text-sm text-white"
+        >
+          New tenant
+        </Link>
+      </div>
       <table className="mt-8 w-full text-left text-sm">
         <thead>
           <tr>
