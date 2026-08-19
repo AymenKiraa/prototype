@@ -15,6 +15,10 @@ import { platformPrisma } from "@/lib/db/platform-client";
  */
 export const { handlers, auth, signIn, signOut } = NextAuth({
   basePath: "/api/auth/platform-admin",
+  // Without this, NextAuth can't reliably infer the request origin outside
+  // known platforms (Vercel) — internal redirect/callback URL construction
+  // falls back to a bogus default host instead of the real one.
+  trustHost: true,
   session: { strategy: "jwt" },
   cookies: {
     sessionToken: {

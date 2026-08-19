@@ -14,6 +14,10 @@ import { getTenantPrismaClient } from "@/lib/db/tenant-client";
  */
 export const { handlers, auth, signIn, signOut } = NextAuth({
   basePath: "/api/auth/customer",
+  // Without this, NextAuth can't reliably infer the request origin outside
+  // known platforms (Vercel) — internal redirect/callback URL construction
+  // falls back to a bogus default host instead of the tenant's real one.
+  trustHost: true,
   session: { strategy: "jwt" },
   cookies: {
     sessionToken: {

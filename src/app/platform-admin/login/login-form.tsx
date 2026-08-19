@@ -1,10 +1,16 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { platformAdminLoginAction } from "./actions";
 
 export function PlatformAdminLoginForm() {
-  const [error, formAction, pending] = useActionState(platformAdminLoginAction, undefined);
+  const [state, formAction, pending] = useActionState(platformAdminLoginAction, undefined);
+
+  useEffect(() => {
+    if (state?.success) {
+      window.location.href = "/platform-admin";
+    }
+  }, [state?.success]);
 
   return (
     <form action={formAction} className="flex w-full max-w-sm flex-col gap-4">
@@ -23,7 +29,7 @@ export function PlatformAdminLoginForm() {
         required
         className="rounded border px-3 py-2"
       />
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
       <button
         type="submit"
         disabled={pending}

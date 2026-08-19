@@ -3,6 +3,14 @@ import { platformPrisma } from "@/lib/db/platform-client";
 export interface TenantResolution {
   tenantId: string;
   slug: string;
+  /**
+   * How the tenant was resolved. Middleware needs this: a `path` match
+   * means the slug is a routing prefix (`pitchbook.com/{slug}/...`) that
+   * has to be stripped before the request reaches page routes, which are
+   * flat (`/login`, not `/[slug]/login`) — `domain`/`subdomain` matches
+   * carry the tenant purely via hostname, so the path is untouched.
+   */
+  via: "domain" | "subdomain" | "path";
 }
 
 const ROOT_DOMAIN = process.env.ROOT_DOMAIN ?? "pitchbook.com";
@@ -54,7 +62,7 @@ async function resolveTenantUncached(hostname: string, pathname: string): Promis
     select: { tenantId: true, tenant: { select: { slug: true } } },
   });
   if (domain) {
-    return { tenantId: domain.tenantId, slug: domain.tenant.slug };
+    return { tenantId: domain.tenantId, slug: domain.tenant.slug, via: "domain" };
   }
 
   if (hostname.endsWith(`.${ROOT_DOMAIN}`)) {
@@ -64,7 +72,7 @@ async function resolveTenantUncached(hostname: string, pathname: string): Promis
         where: { slug },
         select: { id: true, slug: true },
       });
-      if (tenant) return { tenantId: tenant.id, slug: tenant.slug };
+      if (tenant) return { tenantId: tenant.id, slug: tenant.slug, via: "subdomain" };
     }
     // hostname is the bare root domain (or www) — only the path fallback applies.
   }
@@ -75,7 +83,7 @@ async function resolveTenantUncached(hostname: string, pathname: string): Promis
       where: { slug: maybeSlug },
       select: { id: true, slug: true },
     });
-    if (tenant) return { tenantId: tenant.id, slug: tenant.slug };
+    if (tenant) return { tenantId: tenant.id, slug: tenant.slug, via: "path" };
   }
 
   return null;
