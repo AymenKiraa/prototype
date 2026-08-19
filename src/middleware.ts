@@ -37,6 +37,23 @@ export async function middleware(request: NextRequest) {
   requestHeaders.set("x-tenant-id", resolution.tenantId);
   requestHeaders.set("x-tenant-slug", resolution.slug);
 
+  if (resolution.via === "path") {
+    // Page routes are flat (/login, not /[slug]/login) — a domain/subdomain
+    // match carries the tenant via hostname alone and needs no rewrite, but
+    // a path match's slug is a routing prefix that has to be stripped
+    // before this reaches route matching, or every route 404s.
+    //
+    // Known limitation: this fixes direct navigation/reloads, but relative
+    // links rendered by a page (e.g. <Link href="/login">) won't carry the
+    // /{slug} prefix back into the URL bar — path-fallback is documented as
+    // an early-launch/no-DNS degradation, not full parity with real
+    // subdomains (docs/01-architecture.md §2).
+    const rewritten = request.nextUrl.clone();
+    const withoutSlug = pathname.replace(`/${resolution.slug}`, "") || "/";
+    rewritten.pathname = withoutSlug;
+    return NextResponse.rewrite(rewritten, { request: { headers: requestHeaders } });
+  }
+
   return NextResponse.next({
     request: { headers: requestHeaders },
   });

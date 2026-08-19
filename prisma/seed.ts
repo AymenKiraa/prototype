@@ -12,6 +12,18 @@ const prisma = new PrismaClient({
 async function main() {
   const staffPasswordHash = await bcrypt.hash("staff-password-123", 10);
   const customerPasswordHash = await bcrypt.hash("customer-password-123", 10);
+  const platformAdminPasswordHash = await bcrypt.hash("admin-password-123", 10);
+
+  await prisma.platformAdmin.upsert({
+    where: { email: "admin@example.com" },
+    update: {},
+    create: {
+      email: "admin@example.com",
+      passwordHash: platformAdminPasswordHash,
+      fullName: "Test Platform Admin",
+    },
+  });
+  console.log("Seeded platform admin (admin@example.com)");
 
   for (const [slug, businessName] of [
     ["elite-football", "Elite Football"],
@@ -46,28 +58,37 @@ async function main() {
       },
     });
 
-    const location = await prisma.location.create({
-      data: { tenantId: tenant.id, name: "Main Location", city: "Tunis" },
-    });
+    let location = await prisma.location.findFirst({ where: { tenantId: tenant.id, name: "Main Location" } });
+    if (!location) {
+      location = await prisma.location.create({
+        data: { tenantId: tenant.id, name: "Main Location", city: "Tunis" },
+      });
+    }
 
-    await prisma.pitch.create({
-      data: {
-        tenantId: tenant.id,
-        locationId: location.id,
-        name: "Pitch 1",
-        pitchType: "5v5",
-        basePrice: 8000,
-      },
-    });
+    const pitch = await prisma.pitch.findFirst({ where: { tenantId: tenant.id, name: "Pitch 1" } });
+    if (!pitch) {
+      await prisma.pitch.create({
+        data: {
+          tenantId: tenant.id,
+          locationId: location.id,
+          name: "Pitch 1",
+          pitchType: "5v5",
+          basePrice: 8000,
+        },
+      });
+    }
 
-    await prisma.customer.create({
-      data: {
-        tenantId: tenant.id,
-        fullName: "Test Customer",
-        phone: "+21600000000",
-        passwordHash: customerPasswordHash,
-      },
-    });
+    const customer = await prisma.customer.findFirst({ where: { tenantId: tenant.id, phone: "+21600000000" } });
+    if (!customer) {
+      await prisma.customer.create({
+        data: {
+          tenantId: tenant.id,
+          fullName: "Test Customer",
+          phone: "+21600000000",
+          passwordHash: customerPasswordHash,
+        },
+      });
+    }
 
     console.log(`Seeded tenant "${slug}" (${tenant.id})`);
   }
